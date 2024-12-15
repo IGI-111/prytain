@@ -1,0 +1,44 @@
+[[package]]
+name = "core"
+source = "path+from-root-2AB5BCE55EAAEFF4"
+
+[[package]]
+name = "fixed_point"
+source = "git+https://github.com/IGI-111/fixed_point.git?default-branch#1d21268b9c6bf4819da2bf17f21b82e832e551c0"
+dependencies = ["std"]
+
+[[package]]
+name = "perlin"
+source = "git+https://github.com/IGI-111/perlin.git?branch=master#dbe9dea55d34d1463bd95ae8574d8ae3b1cc77ce"
+dependencies = [
+    "fixed_point",
+    "std",
+    "sway_libs",
+]
+
+[[package]]
+name = "prytain"
+source = "member"
+dependencies = [
+    "fixed_point",
+    "perlin",
+    "std",
+]
+
+[[package]]
+name = "standards"
+source = "git+https://github.com/FuelLabs/sway-standards?tag=v0.6.0#65e09f95ea8b9476b171a66c8a47108f352fa32c"
+dependencies = ["std"]
+
+[[package]]
+name = "std"
+source = "git+https://github.com/fuellabs/sway?tag=v0.62.0#efda0397c7bee77de73bd726ec0b732d57614973"
+dependencies = ["core"]
+
+[[package]]
+name = "sway_libs"
+source = "git+https://github.com/FuelLabs/sway-libs?default-branch#24d01a6bccf6ada68317dcd90df92424c36223a7"
+dependencies = [
+    "standards",
+    "std",
+]

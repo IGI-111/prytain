@@ -6,3 +6,4 @@ name = "prytain"
 
 [dependencies]
 perlin = { git = "https://github.com/IGI-111/perlin.git", branch = "master" }
+fixed_point = { git = "https://github.com/IGI-111/fixed_point.git" }
