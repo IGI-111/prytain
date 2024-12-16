@@ -2,7 +2,9 @@ import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { BlurFilter, TextStyle } from "pixi.js";
 import { Button, Box, BoxCentered, Heading } from "@fuel-ui/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+
 import {
+  Instances, Instance,
   CameraControls,
   TransformControls,
   OrthographicCamera,
@@ -19,8 +21,6 @@ export enum MapMode {
 }
 
 function Map({ contract, mode }) {
-  const width = 1000;
-  const height = 1000;
   const [origin, setOrigin] = useState({
     x: Math.floor(Math.pow(2, 32) / 2),
     y: Math.floor(Math.pow(2, 32) / 2),
@@ -111,7 +111,7 @@ function Map({ contract, mode }) {
       <Canvas
         orthographic
         camera={{
-          zoom: 50,
+          zoom: 90,
         }}
         // isometric
         // camera={{
@@ -132,8 +132,6 @@ function Map({ contract, mode }) {
             <SelectionContext
               tiles={tiles}
               origin={origin}
-              height={height}
-              width={width}
               fetchQueue={fetchQueue}
               onSelection={selection => {
                 fetchTilesBatched(selection.filter(([x,y]) => tiles[`${x},${y}`] == undefined));
@@ -143,8 +141,6 @@ function Map({ contract, mode }) {
             <MoveContext
               tiles={tiles}
               origin={origin}
-              height={height}
-              width={width}
               fetchQueue={fetchQueue}
               onMove={new_origin => {
                 setOrigin(new_origin);
@@ -186,15 +182,17 @@ function SelectionContext(props) {
     selectionCoords().map(([x,y]) => selection.add(`${x},${y}`));
   }
 
+  console.log(selFrom, selTo);
+
   return (<TileMap
             {...props}
-            onPointerDown={(x,y,e) => setSelFrom([x,y])}
-            onPointerMove={(x,y,e) => {
+            onPointerDown={(e, x, y) => setSelFrom([x,y])}
+            onHover={({x, y}) => {
               if(selFrom) {
                 setSelTo([x,y]);
               }
             }}
-            onPointerUp={(x,y,e) => {
+            onPointerUp={(e, x, y) => {
               if(props.onSelection) {
                 props.onSelection(selectionCoords());
               }
@@ -206,78 +204,98 @@ function SelectionContext(props) {
 }
 
 function MoveContext(props) {
-  const { mouse } = useThree();
+  const { mouse, camera } = useThree();
+  const isDragging = useRef(false);
+  const lastPosition = useRef({ x: 0, y: 0 });
 
-  let [moveFrom, setMoveFrom] = useState(null);
-  let [moveTo, setMoveTo] = useState(null);
+  useFrame(state => {
+    if (isDragging.current) {
+      const deltaX = mouse.x - lastPosition.current.x;
+      const deltaY = mouse.y - lastPosition.current.y;
 
-  const new_origin = Object.assign({},props.origin);
+      camera.position.x -= deltaX * 2;
+      camera.position.y -= deltaY * 2;
 
-  if(moveFrom && moveTo) {
-    new_origin.x -= Math.floor((moveTo.x - moveFrom.x));
-    new_origin.y -= Math.floor((moveTo.y - moveFrom.y));
-    console.log(mouse);
-  }
+      lastPosition.current = Object.assign({}, mouse);
+    }
+  });
 
-  return (<TileMap
-            {...props}
-            onPointerDown={(x,y,e) => setMoveFrom({x,y})}
-            onPointerEnter={(x,y,e) => {
-              if(moveFrom) {
-                setMoveTo({x,y});
-              }
-            }}
-            onPointerUp={(x,y,e) => {
-              if(props.onMove) {
-                props.onMove(new_origin);
-              }
-              setMoveFrom(null);
-              setMoveTo(null);
-            }}
-            origin={new_origin}
-          />);
+  return (
+    <TileMap
+      {...props}
+      onPointerDown={(e) => {
+        lastPosition.current = mouse;
+        isDragging.current = true;
+      }}
+      onPointerUp={(e) => {
+        isDragging.current = false;
+      }}
+    />
+  );
 }
-
 function TileMap({
   tiles,
   origin,
-  height,
-  width,
   fetchQueue,
   selection,
   onPointerDown,
   onPointerUp,
-  onPointerMove,
-  onPointerHover,
-  onPointerEnter,
-  onPointerLeave,
+  onHover,
 }) {
+
+  const instancesRef = useRef();
+  const { raycaster, camera, pointer } = useThree();
+
+  
   const scaling = 0.1;
   const offset = (100 * scaling) / 2;
+  const [hovered, setHovered] = useState(null);
 
   const tileGeometry = useMemo(() => new THREE.PlaneGeometry(scaling, scaling));
-  const fetchingMaterial = useMemo(
-    () => new THREE.MeshBasicMaterial({ color: "#8f7f8f" }),
-  );
-  const selectedMaterial = useMemo(
-    () => new THREE.MeshBasicMaterial({ color: "yellow" }),
-  );
-  const unknownMaterial = useMemo(
-    () => new THREE.MeshBasicMaterial({ color: "#7f7f7f" }),
-  );
+  const tileMaterial = useMemo(() => new THREE.MeshBasicMaterial());
 
-  const meshes = [];
+  const colors = [];
+  const positions = []
 
-  // draw tiles
+
+  // Handle pointer movement and raycasting
+  useFrame(() => {
+    if (!instancesRef.current) return;
+
+    // Update raycaster position based on pointer
+    raycaster.setFromCamera(pointer, camera);
+
+    // Get all intersections
+    const intersects = raycaster.intersectObject(instancesRef.current);
+    
+    if (intersects.length > 0) {
+      const instanceId = intersects[0].instanceId;
+      
+      if (hovered !== instanceId) {
+        setHovered(instanceId);
+        
+        if (onHover) {
+          // Calculate x, y coordinates from instance ID
+          const width = 100;
+          const x = instanceId % width;
+          const y = Math.floor(instanceId / width);
+          onHover({ x, y, instanceId });
+        }
+      }
+    } else if (hovered !== null) {
+      setHovered(null);
+      if (onHover) onHover(null);
+    }
+  });  
 
   for (let y = 0; y < 100; y++) {
-    for (let x = 0; x < 100; x++) {
-      const tile = tiles[`${origin.x + x},${origin.y + y}`];
+    for (let x = -0; x < 100; x++) {
+      const tile = tiles[`${x+origin.x},${y+origin.y}`];
       const position = [x * scaling - offset, y * scaling - offset, 0];
-      let material;
+      let color;
 
       if (selection && selection.has(`${origin.x+x},${origin.x+y}`)) {
-        material = selectedMaterial;
+        color = "yellow";
       } else if (tile !== undefined) {
         const terrainToColor = {
           Sea: `rgb(0,0,${tile.altitude})`,
@@ -285,35 +303,32 @@ function TileMap({
           Port: "black",
           Ground: `rgb(0,${tile.altitude},0)`,
         };
-        material = new THREE.MeshBasicMaterial({
-          color: terrainToColor[tile.terrain],
-        });
+
+        color = terrainToColor[tile.terrain];
       } else if (fetchQueue.has(`${origin.x+x},${origin.x+y}`)) {
         // TODO: move this into its own component
-        material = fetchingMaterial;
+        color = "#8f7f8f";
       } else {
-        material = unknownMaterial;
+        color = "#7f7f7f";
       }
-      meshes.push(
-        <mesh
-          position={position}
-          geometry={tileGeometry}
-          material={material}
-          onPointerDown={(e) => onPointerDown && onPointerDown(origin.x+x, origin.y+y, e)}
-          onPointerUp={(e) => onPointerUp && onPointerUp(origin.x+x, origin.y+y, e)}
-          onPointerMove={(e) => onPointerMove && onPointerMove(origin.x+x, origin.y+y, e)}
-          onPointerHover={(e) => onPointerHover && onPointerHover(origin.x+x, origin.y+y, e)}
-          onPointerEnter={(e) => onPointerEnter && onPointerEnter(origin.x+x, origin.y+y, e)}
-          onPointerLeave={(e) => onPointerLeave && onPointerLeave(origin.x+x, origin.y+y, e)}
-        />,
-      );
-    }
+      colors.push(color);
+      positions.push(position);
+   }
   }
   return (
-    <group>
-      {meshes.map((t, i) => (
-        <group key={i}> {t} </group>
-      ))}
+    <group
+      onPointerUp={e => onPointerUp(e, hovered.x, hovered.y)}
+      onPointerDown={e => onPointerDown(e, hovered.x, hovered.y)}
+      >
+      <Instances limit={200*200} geometry={tileGeometry} material={tileMaterial} ref={instancesRef}>
+        {positions.map((p, i) => (
+          <Instance
+            key={i}
+            position={p}
+            color={colors[i]}
+          />
+        ))}
+      </Instances>
     </group>
   );
 }
