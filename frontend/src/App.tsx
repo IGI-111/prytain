@@ -30,11 +30,11 @@ function App() {
     <Box>
       { isConnected && wallet ? (
         <Box>
+          <Map contract={contract}/>
           <p>{wallet.address.toB256()}</p>
           <Button onPress={() => { disconnect(); }}>
             Disconnect
           </Button>
-          <Map contract={contract}/>
         </Box>
       ) : (
         <Box>
