@@ -9,7 +9,7 @@ import {
 } from "./constants.ts";
 import "./App.css";
 import { Prytain } from "./sway-api/index.ts";
-import Map from "./components/Map.tsx";
+import Map, { MapMode } from "./components/Map.tsx";
 
 function App() {
   const { isConnected } = useIsConnected();
@@ -26,15 +26,23 @@ function App() {
   const { connect, isConnecting } = useConnectUI();
   const { disconnect } = useDisconnect();
 
+  const [mode, setMode] = useState(MapMode.Move);
+
   return (
     <Box>
       { isConnected && wallet ? (
         <Box>
-          <Map contract={contract}/>
           <p>{wallet.address.toB256()}</p>
           <Button onPress={() => { disconnect(); }}>
             Disconnect
           </Button>
+          <Button isDisabled={mode == MapMode.Selection} onPress={() => { setMode(MapMode.Selection); }}>
+            Select
+          </Button>
+          <Button isDisabled={mode == MapMode.Move} onPress={() => { setMode(MapMode.Move); }}>
+            Move
+          </Button>
+          <Map mode={mode} contract={contract}/>
         </Box>
       ) : (
         <Box>

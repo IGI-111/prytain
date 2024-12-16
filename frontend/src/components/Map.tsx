@@ -13,15 +13,15 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 
-enum MapMode {
+export enum MapMode {
   Move,
-  Fetch,
+  Selection,
 }
 
-function Map({ contract }) {
+function Map({ contract, mode }) {
   const width = 1000;
   const height = 1000;
-  const [origin, setorigin] = useState({
+  const [origin, setOrigin] = useState({
     x: Math.floor(Math.pow(2, 32) / 2),
     y: Math.floor(Math.pow(2, 32) / 2),
   });
@@ -40,7 +40,7 @@ function Map({ contract }) {
 
     let remaining = coords.slice();
     let batch_size = 60;
-    let concurrency = 4;
+    let concurrency = 5;
 
     while (remaining.length > 0) {
       await Promise.all(
@@ -53,7 +53,6 @@ function Map({ contract }) {
   };
 
   const fetchBatch = async (coords) => {
-    console.log("fetchBatch");
     let batch;
     try {
       batch = (await contract.functions.get_tile_batch(coords).get()).value;
@@ -106,41 +105,138 @@ function Map({ contract }) {
     })();
   }, []);
 
-  console.log("render");
 
   return (
-    <div style={{ height: "90vw" }}>
+    <div style={{ height: "90vh" }}>
       <Canvas
         orthographic
         camera={{
-          position: [0.2, -10, 8],
-          rotation: [1, 0, -0],
-          zoom: 65,
-          fov: 75,
+          zoom: 50,
         }}
+        // isometric
+        // camera={{
+        //   position: [0.2, -10, 8],
+        //   rotation: [1, 0, -0],
+        //   zoom: 90,
+        //   fov: 75,
+        // }}
       >
-        <color attach="background" args={["#0f0f0f"]} />
+        <color attach="background" args={["#2f6dc1"]} />
 
         <ambientLight intensity={1} />
-        <group rotation={[0, 0, Math.PI / 4]}>
-          <SelectionContext/>
-        </group>
+        {
+        // isometric
+        // <group rotation={[0, 0, Math.PI / 4]}>
+        }
+          {mode == MapMode.Selection &&
+            <SelectionContext
+              tiles={tiles}
+              origin={origin}
+              height={height}
+              width={width}
+              fetchQueue={fetchQueue}
+              onSelection={selection => {
+                fetchTilesBatched(selection.filter(([x,y]) => tiles[`${x},${y}`] == undefined));
+              }}
+            /> }
+          {mode == MapMode.Move&&
+            <MoveContext
+              tiles={tiles}
+              origin={origin}
+              height={height}
+              width={width}
+              fetchQueue={fetchQueue}
+              onMove={new_origin => {
+                setOrigin(new_origin);
+              }}
+            /> }
+        {
+        // </group>
+        }
       </Canvas>
     </div>
   );
-  // { fetchSelector !== null && <Selector fetchSelector={fetchSelector} origin={origin}/> }
 }
 
-// function SelectionContext(props) {
-//   let [selection, setSelection] = useState(
-//   return <TileMap
-//             tiles={tiles}
-//             origin={origin}
-//             height={height}
-//             width={width}
-//             fetchQueue={fetchQueue}
-//           />;
-// }
+function SelectionContext(props) {
+
+  let [selFrom, setSelFrom] = useState(null);
+  let [selTo, setSelTo] = useState(null);
+
+  const selectionCoords = () => {
+    if(!selTo || !selFrom) {
+      return [];
+    }
+    const ans = [];
+    let top = Math.min(selTo[1], selFrom[1]);
+    let bottom = Math.max(selTo[1], selFrom[1]);
+    let left = Math.min(selTo[0], selFrom[0]);
+    let right = Math.max(selTo[0], selFrom[0]);
+
+    for (let y = top; y <= bottom; y++) {
+      for (let x = left; x <= right; x++) {
+        ans.push([x,y]);
+      }
+    }
+    return ans;
+  };
+
+  let selection = new Set();
+  if(selFrom && selTo) {
+    selectionCoords().map(([x,y]) => selection.add(`${x},${y}`));
+  }
+
+  return (<TileMap
+            {...props}
+            onPointerDown={(x,y,e) => setSelFrom([x,y])}
+            onPointerMove={(x,y,e) => {
+              if(selFrom) {
+                setSelTo([x,y]);
+              }
+            }}
+            onPointerUp={(x,y,e) => {
+              if(props.onSelection) {
+                props.onSelection(selectionCoords());
+              }
+              setSelFrom(null);
+              setSelTo(null);
+            }}
+            selection={selection}
+          />);
+}
+
+function MoveContext(props) {
+  const { mouse } = useThree();
+
+  let [moveFrom, setMoveFrom] = useState(null);
+  let [moveTo, setMoveTo] = useState(null);
+
+  const new_origin = Object.assign({},props.origin);
+
+  if(moveFrom && moveTo) {
+    new_origin.x -= Math.floor((moveTo.x - moveFrom.x));
+    new_origin.y -= Math.floor((moveTo.y - moveFrom.y));
+    console.log(mouse);
+  }
+
+  return (<TileMap
+            {...props}
+            onPointerDown={(x,y,e) => setMoveFrom({x,y})}
+            onPointerEnter={(x,y,e) => {
+              if(moveFrom) {
+                setMoveTo({x,y});
+              }
+            }}
+            onPointerUp={(x,y,e) => {
+              if(props.onMove) {
+                props.onMove(new_origin);
+              }
+              setMoveFrom(null);
+              setMoveTo(null);
+            }}
+            origin={new_origin}
+          />);
+}
 
 function TileMap({
   tiles,
@@ -153,6 +249,8 @@ function TileMap({
   onPointerUp,
   onPointerMove,
   onPointerHover,
+  onPointerEnter,
+  onPointerLeave,
 }) {
   const scaling = 0.1;
   const offset = (100 * scaling) / 2;
@@ -175,24 +273,25 @@ function TileMap({
   for (let y = 0; y < 100; y++) {
     for (let x = 0; x < 100; x++) {
       const tile = tiles[`${origin.x + x},${origin.y + y}`];
-      let position, material;
-      if (tile !== undefined) {
+      const position = [x * scaling - offset, y * scaling - offset, 0];
+      let material;
+
+      if (selection && selection.has(`${origin.x+x},${origin.x+y}`)) {
+        material = selectedMaterial;
+      } else if (tile !== undefined) {
         const terrainToColor = {
           Sea: `rgb(0,0,${tile.altitude})`,
           Coast: `rgb(${tile.altitude},${tile.altitude},0)`,
           Port: "black",
           Ground: `rgb(0,${tile.altitude},0)`,
         };
-        position = [x * scaling - offset, y * scaling - offset, 0];
         material = new THREE.MeshBasicMaterial({
           color: terrainToColor[tile.terrain],
         });
-      } else if (fetchQueue.has(`${x},${y}`)) {
+      } else if (fetchQueue.has(`${origin.x+x},${origin.x+y}`)) {
         // TODO: move this into its own component
-        position = [x * scaling - offset, y * scaling - offset, 0];
         material = fetchingMaterial;
       } else {
-        position = [x * scaling - offset, y * scaling - offset, 0];
         material = unknownMaterial;
       }
       meshes.push(
@@ -200,10 +299,12 @@ function TileMap({
           position={position}
           geometry={tileGeometry}
           material={material}
-          onPointerDown={(e) => onPointerDown && onPointerDown(x, y, e)}
-          onPointerUp={(e) => onPointerUp && onPointerUp(x, y, e)}
-          onPointerMove={(e) => onPointerMove && onPointerMove(x, y, e)}
-          onPointerHover={(e) => onPointerHover && onPointerHover(x, y, e)}
+          onPointerDown={(e) => onPointerDown && onPointerDown(origin.x+x, origin.y+y, e)}
+          onPointerUp={(e) => onPointerUp && onPointerUp(origin.x+x, origin.y+y, e)}
+          onPointerMove={(e) => onPointerMove && onPointerMove(origin.x+x, origin.y+y, e)}
+          onPointerHover={(e) => onPointerHover && onPointerHover(origin.x+x, origin.y+y, e)}
+          onPointerEnter={(e) => onPointerEnter && onPointerEnter(origin.x+x, origin.y+y, e)}
+          onPointerLeave={(e) => onPointerLeave && onPointerLeave(origin.x+x, origin.y+y, e)}
         />,
       );
     }
