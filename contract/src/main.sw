@@ -1,5 +1,7 @@
 contract;
 
+mod noise;
+
 use perlin::fp::compute_perlin;
 use std::hash::*;
 

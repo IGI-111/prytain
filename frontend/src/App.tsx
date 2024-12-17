@@ -10,6 +10,7 @@ import {
 import "./App.css";
 import { Prytain } from "./sway-api/index.ts";
 import Map, { MapMode } from "./components/Map.tsx";
+import TileMap from "./components/TileMap.tsx";
 
 function App() {
   const { isConnected } = useIsConnected();
@@ -42,7 +43,12 @@ function App() {
           <Button isDisabled={mode == MapMode.Move} onPress={() => { setMode(MapMode.Move); }}>
             Move
           </Button>
-          <Map mode={mode} contract={contract}/>
+{//          <Map mode={mode} contract={contract}/>
+}
+  <TileMap colors={(x, y) => {
+      return ['gray','violet','darkblue','orange','yellow','pink'][Math.abs(x+y)%6];
+    }}/>
+
         </Box>
       ) : (
         <Box>
