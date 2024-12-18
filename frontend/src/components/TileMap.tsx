@@ -137,7 +137,9 @@ const TileChunk = ({ chunkX, chunkY, getTileType, selectedTiles, chunkSize }) =>
   
   const TILES_IN_TEXTURE = 16;
   const UV_TILE_SIZE = 1 / TILES_IN_TEXTURE;
-  
+  // Add small padding to prevent texture bleeding
+  const UV_PADDING = 0.002;  
+
   const chunkOffset = useMemo(() => {
     return [chunkX * chunkSize, chunkY * chunkSize];
   }, [chunkX, chunkY, chunkSize]);
@@ -176,11 +178,12 @@ const TileChunk = ({ chunkX, chunkY, getTileType, selectedTiles, chunkSize }) =>
     geometry.attributes.instanceUV.needsUpdate = true;
   }, [chunkX, chunkY, getTileType, chunkSize, chunkOffset, geometry]);
 
-  const material = useMemo(() => {
+    const material = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
         tileTexture: { value: texture },
         tileSize: { value: UV_TILE_SIZE },
+        uvPadding: { value: UV_PADDING },
         selected: { value: new THREE.Color(0x4444ff) },
         selectedOpacity: { value: 0.3 }
       },
@@ -188,15 +191,20 @@ const TileChunk = ({ chunkX, chunkY, getTileType, selectedTiles, chunkSize }) =>
         attribute vec2 instanceUV;
         varying vec2 vUv;
         varying vec4 worldPosition;
+        uniform float tileSize;
+        uniform float uvPadding;
 
         void main() {
           // Convert instance UV (tile coordinates) to actual UV coordinates
           vec2 tileUV = instanceUV;
           vec2 baseUV = uv; // The default UV from the plane geometry
           
-          // Calculate final UV by combining tile position with position within tile
-          float tileSize = 1.0/16.0; // For 16x16 tileset
-          vUv = (tileUV * tileSize) + (baseUV * tileSize);
+          // Add padding to UV coordinates
+          float paddedTileSize = tileSize - (2.0 * uvPadding);
+          vec2 paddedBaseUV = baseUV * paddedTileSize;
+          vec2 finalUV = (tileUV * tileSize) + paddedBaseUV + uvPadding;
+          
+          vUv = finalUV;
           
           vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
           worldPosition = instanceMatrix * vec4(position, 1.0);
@@ -219,7 +227,7 @@ const TileChunk = ({ chunkX, chunkY, getTileType, selectedTiles, chunkSize }) =>
       `,
       transparent: true
     });
-  }, [texture, UV_TILE_SIZE]);
+  }, [texture, UV_TILE_SIZE, UV_PADDING]);
 
   return (
     <instancedMesh 
