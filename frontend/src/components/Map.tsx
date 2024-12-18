@@ -87,6 +87,7 @@ function Map({ contract, mode }) {
   };
 
   const handleSelect = selectionSet => {
+    console.log(selectionSet);
     let coords = selectionSet.keys().map(
       k => {
         const nums = k.split(',').map(n => Number(n));
@@ -99,21 +100,22 @@ function Map({ contract, mode }) {
     console.log(coords);
   };
 
-  const colorFunction = (x, y) => {
+  const getTileType = (x, y) => {
     const tile = tiles[`${x+origin.x},${y+origin.y}`];
     if(tile === undefined) {
-      return 'darkblue';
+      return 1;
     } else if(tile) {
-      return 'orange';
+      return 0;
     } else {
-      return 'blue';
+      return 2;
     }
   };
 
 
   return (
-    <TileMap colors={colorFunction}
-      onSelect={handleSelect}
+    <TileMap
+      getTileType={getTileType}
+      onSelect={s => handleSelect(s)}
       shipPosition={[0,0]}
        />
   );

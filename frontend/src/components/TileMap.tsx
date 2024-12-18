@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrthographicCamera, Text } from '@react-three/drei';
+import { OrthographicCamera, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
+
+import tileset from '../assets/tileset.png';
 
 const BASE_CHUNK_SIZE = 16;
 const MIN_CHUNK_SIZE = 8;
@@ -116,19 +118,35 @@ const Ship = ({ position }) => {
   );
 };
 
-const TileChunk = ({ chunkX, chunkY, colors, selectedTiles, chunkSize }) => {
+const createTileGeometry = (numTiles) => {
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  const uvs = new Float32Array(numTiles * 2); // Changed to 2 components per instance
+  const instanceUV = new THREE.InstancedBufferAttribute(uvs, 2);
+  geometry.setAttribute('instanceUV', instanceUV);
+  return geometry;
+};
+
+const TileChunk = ({ chunkX, chunkY, getTileType, selectedTiles, chunkSize }) => {
   const meshRef = useRef();
   const numTiles = chunkSize * chunkSize;
-  const baseColors = useRef(new Array(numTiles));
+  const tileTypes = useRef(new Array(numTiles));
+  
+  const texture = useTexture(tileset);
+  texture.magFilter = THREE.NearestFilter;
+  texture.minFilter = THREE.NearestFilter;
+  
+  const TILES_IN_TEXTURE = 16;
+  const UV_TILE_SIZE = 1 / TILES_IN_TEXTURE;
   
   const chunkOffset = useMemo(() => {
     return [chunkX * chunkSize, chunkY * chunkSize];
   }, [chunkX, chunkY, chunkSize]);
 
+  const geometry = useMemo(() => createTileGeometry(numTiles), [numTiles]);
+
   useEffect(() => {
     if (!meshRef.current) return;
     const tempObject = new THREE.Object3D();
-    const color = new THREE.Color();
     
     let i = 0;
     for (let y = 0; y < chunkSize; y++) {
@@ -140,51 +158,78 @@ const TileChunk = ({ chunkX, chunkY, colors, selectedTiles, chunkSize }) => {
         tempObject.updateMatrix();
         meshRef.current.setMatrixAt(i, tempObject.matrix);
         
-        // Get color based on world coordinates
-        const colorIndex = Math.abs(Math.floor(colors(worldX, worldY) * 255)) % 256;
-        const colorValue = typeof colors === 'function' ? colors(worldX, worldY) : colors[colorIndex];
-        baseColors.current[i] = colorValue;
+        const tileType = getTileType(worldX, worldY);
+        tileTypes.current[i] = tileType;
         
-        color.set(selectedTiles.has(`${worldX},${worldY}`) ? '#0000ff' : colorValue);
-        meshRef.current.setColorAt(i, color);
+        const tileX = tileType % TILES_IN_TEXTURE;
+        const tileY = Math.floor(tileType / TILES_IN_TEXTURE);
+        
+        // Simplified UV assignment - just store the tile coordinates
+        geometry.attributes.instanceUV.array[i * 2] = tileX;
+        geometry.attributes.instanceUV.array[i * 2 + 1] = tileY;
+        
         i++;
       }
     }
     
     meshRef.current.instanceMatrix.needsUpdate = true;
-    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-  }, [chunkX, chunkY, colors, chunkSize, selectedTiles, chunkOffset]);
-    
-  useEffect(() => {
-    if (!meshRef.current) return;
-    const color = new THREE.Color();
-    
-    let i = 0;
-    for (let y = 0; y < chunkSize; y++) {
-      for (let x = 0; x < chunkSize; x++) {
-        const worldX = x + chunkOffset[0];
-        const worldY = y + chunkOffset[1];
-        color.set(selectedTiles.has(`${worldX},${worldY}`) ? '#0000ff' : baseColors.current[i]);
-        meshRef.current.setColorAt(i, color);
-        i++;
-      }
-    }
-    
-    if (meshRef.current.instanceColor) meshRef.current.instanceColor.needsUpdate = true;
-  }, [selectedTiles, chunkOffset, chunkSize]);
+    geometry.attributes.instanceUV.needsUpdate = true;
+  }, [chunkX, chunkY, getTileType, chunkSize, chunkOffset, geometry]);
+
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        tileTexture: { value: texture },
+        tileSize: { value: UV_TILE_SIZE },
+        selected: { value: new THREE.Color(0x4444ff) },
+        selectedOpacity: { value: 0.3 }
+      },
+      vertexShader: /* glsl */`
+        attribute vec2 instanceUV;
+        varying vec2 vUv;
+        varying vec4 worldPosition;
+
+        void main() {
+          // Convert instance UV (tile coordinates) to actual UV coordinates
+          vec2 tileUV = instanceUV;
+          vec2 baseUV = uv; // The default UV from the plane geometry
+          
+          // Calculate final UV by combining tile position with position within tile
+          float tileSize = 1.0/16.0; // For 16x16 tileset
+          vUv = (tileUV * tileSize) + (baseUV * tileSize);
+          
+          vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+          worldPosition = instanceMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tileTexture;
+        uniform vec3 selected;
+        uniform float selectedOpacity;
+        
+        varying vec2 vUv;
+        varying vec4 worldPosition;
+        
+        void main() {
+          vec4 texColor = texture2D(tileTexture, vUv);
+          if (texColor.a < 0.1) discard;
+          gl_FragColor = texColor;
+        }
+      `,
+      transparent: true
+    });
+  }, [texture, UV_TILE_SIZE]);
 
   return (
     <instancedMesh 
       ref={meshRef} 
-      args={[null, null, numTiles]}
-    >
-      <planeGeometry args={[1, 1]} />
-      <meshPhongMaterial />
-    </instancedMesh>
+      args={[geometry, material, numTiles]}
+    />
   );
 };
 
-const ChunkManager = ({ colors, selectedTiles }) => {
+const ChunkManager = ({ colors, selectedTiles, getTileType }) => {
   const { camera } = useThree();
   const [visibleChunks, setVisibleChunks] = useState(new Set());
   const [currentChunkSize, setCurrentChunkSize] = useState(BASE_CHUNK_SIZE);
@@ -222,6 +267,7 @@ const ChunkManager = ({ colors, selectedTiles }) => {
         const [chunkX, chunkY, chunkSize] = chunk.split(',').map(Number);
         return (
           <TileChunk
+            getTileType={getTileType}
             key={chunk}
             chunkX={chunkX}
             chunkY={chunkY}
@@ -369,17 +415,9 @@ return (
     </>
   );};
 
-const TileMap = ({ colors, getColor, onSelect, shipPosition }) => {
+const TileMap = ({ getTileType, onSelect, shipPosition }) => {
   const [mode, setMode] = useState('pan');
   const [selectedTiles, setSelectedTiles] = useState(new Set());
-
-  const colorFunction = useMemo(() => {
-    if (typeof colors === 'function') {
-      return colors;
-    } else {
-      return (x, y) => colors[Math.abs((x + y) % colors.length)];
-    }
-  }, [colors]);
 
   return (
     <>
@@ -401,7 +439,7 @@ const TileMap = ({ colors, getColor, onSelect, shipPosition }) => {
           <ambientLight intensity={1} />
           
           <ChunkManager 
-            colors={colorFunction}
+            getTileType={getTileType}
             selectedTiles={selectedTiles}
           />
           {shipPosition && <Ship position={shipPosition} />}
