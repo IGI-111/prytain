@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports */
 
 /*
-  Fuels version: 0.96.1
+  Fuels version: 0.97.2
 */
 
 import { Contract, Interface } from "fuels";
@@ -18,15 +18,13 @@ import type {
   BN,
   FunctionFragment,
   InvokeFunction,
+  StrSlice,
 } from 'fuels';
 
-import type { Enum, Vec } from "./common";
+import type { Option, Enum, Vec } from "./common";
 
-export enum TerrainInput { Sea = 'Sea', Coast = 'Coast', Port = 'Port', Ground = 'Ground' };
-export enum TerrainOutput { Sea = 'Sea', Coast = 'Coast', Port = 'Port', Ground = 'Ground' };
-
-export type TileInput = { terrain: TerrainInput, altitude: BigNumberish };
-export type TileOutput = { terrain: TerrainOutput, altitude: number };
+export type OrderInput = Enum<{ Goto: [BigNumberish, BigNumberish] }>;
+export type OrderOutput = Enum<{ Goto: [number, number] }>;
 
 const abi = {
   "encoding": "1",
@@ -43,12 +41,12 @@ const abi = {
       "components": [
         {
           "name": "__tuple_element",
-          "type": 8,
+          "type": 11,
           "typeArguments": null
         },
         {
           "name": "__tuple_element",
-          "type": 8,
+          "type": 11,
           "typeArguments": null
         }
       ],
@@ -56,26 +54,11 @@ const abi = {
     },
     {
       "typeId": 2,
-      "type": "enum Terrain",
+      "type": "[_; 4]",
       "components": [
         {
-          "name": "Sea",
-          "type": 0,
-          "typeArguments": null
-        },
-        {
-          "name": "Coast",
-          "type": 0,
-          "typeArguments": null
-        },
-        {
-          "name": "Port",
-          "type": 0,
-          "typeArguments": null
-        },
-        {
-          "name": "Ground",
-          "type": 0,
+          "name": "__array_element",
+          "type": 13,
           "typeArguments": null
         }
       ],
@@ -83,91 +66,117 @@ const abi = {
     },
     {
       "typeId": 3,
-      "type": "generic T",
+      "type": "bool",
       "components": null,
       "typeParameters": null
     },
     {
       "typeId": 4,
+      "type": "enum Option",
+      "components": [
+        {
+          "name": "None",
+          "type": 0,
+          "typeArguments": null
+        },
+        {
+          "name": "Some",
+          "type": 6,
+          "typeArguments": null
+        }
+      ],
+      "typeParameters": [
+        6
+      ]
+    },
+    {
+      "typeId": 5,
+      "type": "enum Order",
+      "components": [
+        {
+          "name": "Goto",
+          "type": 1,
+          "typeArguments": null
+        }
+      ],
+      "typeParameters": null
+    },
+    {
+      "typeId": 6,
+      "type": "generic T",
+      "components": null,
+      "typeParameters": null
+    },
+    {
+      "typeId": 7,
       "type": "raw untyped ptr",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 5,
+      "typeId": 8,
+      "type": "str",
+      "components": null,
+      "typeParameters": null
+    },
+    {
+      "typeId": 9,
       "type": "struct RawVec",
       "components": [
         {
           "name": "ptr",
-          "type": 4,
+          "type": 7,
           "typeArguments": null
         },
         {
           "name": "cap",
-          "type": 9,
+          "type": 12,
           "typeArguments": null
         }
       ],
       "typeParameters": [
-        3
+        6
       ]
     },
     {
-      "typeId": 6,
-      "type": "struct Tile",
-      "components": [
-        {
-          "name": "terrain",
-          "type": 2,
-          "typeArguments": null
-        },
-        {
-          "name": "altitude",
-          "type": 10,
-          "typeArguments": null
-        }
-      ],
-      "typeParameters": null
-    },
-    {
-      "typeId": 7,
+      "typeId": 10,
       "type": "struct std::vec::Vec",
       "components": [
         {
           "name": "buf",
-          "type": 5,
+          "type": 9,
           "typeArguments": [
             {
               "name": "",
-              "type": 3,
+              "type": 6,
               "typeArguments": null
             }
           ]
         },
         {
           "name": "len",
-          "type": 9,
+          "type": 12,
           "typeArguments": null
         }
       ],
       "typeParameters": [
-        3
+        6
       ]
     },
     {
-      "typeId": 8,
+      "typeId": 11,
       "type": "u32",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 9,
+      "typeId": 12,
       "type": "u64",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 10,
+      "typeId": 13,
       "type": "u8",
       "components": null,
       "typeParameters": null
@@ -177,29 +186,37 @@ const abi = {
     {
       "inputs": [
         {
-          "name": "x",
-          "type": 8,
+          "name": "item",
+          "type": 13,
           "typeArguments": null
         },
         {
-          "name": "y",
-          "type": 8,
+          "name": "amount",
+          "type": 13,
           "typeArguments": null
         }
       ],
-      "name": "get_tile",
+      "name": "buy_item",
       "output": {
         "name": "",
-        "type": 6,
+        "type": 0,
         "typeArguments": null
       },
-      "attributes": null
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
     },
     {
       "inputs": [
         {
           "name": "coords",
-          "type": 7,
+          "type": 10,
           "typeArguments": [
             {
               "name": "",
@@ -209,22 +226,165 @@ const abi = {
           ]
         }
       ],
-      "name": "get_tile_batch",
+      "name": "check_islands",
       "output": {
         "name": "",
-        "type": 7,
+        "type": 10,
         "typeArguments": [
           {
             "name": "",
-            "type": 6,
+            "type": 3,
             "typeArguments": null
           }
         ]
       },
       "attributes": null
+    },
+    {
+      "inputs": [],
+      "name": "disembark",
+      "output": {
+        "name": "",
+        "type": 0,
+        "typeArguments": null
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "order",
+          "type": 5,
+          "typeArguments": null
+        }
+      ],
+      "name": "embark",
+      "output": {
+        "name": "",
+        "type": 0,
+        "typeArguments": null
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "x",
+          "type": 11,
+          "typeArguments": null
+        },
+        {
+          "name": "y",
+          "type": 11,
+          "typeArguments": null
+        }
+      ],
+      "name": "island_prices",
+      "output": {
+        "name": "",
+        "type": 4,
+        "typeArguments": [
+          {
+            "name": "",
+            "type": 2,
+            "typeArguments": null
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "item",
+          "type": 13,
+          "typeArguments": null
+        },
+        {
+          "name": "amount",
+          "type": 13,
+          "typeArguments": null
+        }
+      ],
+      "name": "sell_item",
+      "output": {
+        "name": "",
+        "type": 0,
+        "typeArguments": null
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [
+        {
+          "name": "x",
+          "type": 11,
+          "typeArguments": null
+        },
+        {
+          "name": "y",
+          "type": 11,
+          "typeArguments": null
+        }
+      ],
+      "name": "spawn",
+      "output": {
+        "name": "",
+        "type": 0,
+        "typeArguments": null
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
     }
   ],
-  "loggedTypes": [],
+  "loggedTypes": [
+    {
+      "logId": "10098701174489624218",
+      "loggedType": {
+        "name": "",
+        "type": 8,
+        "typeArguments": null
+      }
+    }
+  ],
   "messagesTypes": [],
   "configurables": []
 };
@@ -237,8 +397,13 @@ export class PrytainInterface extends Interface {
   }
 
   declare functions: {
-    get_tile: FunctionFragment;
-    get_tile_batch: FunctionFragment;
+    buy_item: FunctionFragment;
+    check_islands: FunctionFragment;
+    disembark: FunctionFragment;
+    embark: FunctionFragment;
+    island_prices: FunctionFragment;
+    sell_item: FunctionFragment;
+    spawn: FunctionFragment;
   };
 }
 
@@ -248,8 +413,13 @@ export class Prytain extends Contract {
 
   declare interface: PrytainInterface;
   declare functions: {
-    get_tile: InvokeFunction<[x: BigNumberish, y: BigNumberish], TileOutput>;
-    get_tile_batch: InvokeFunction<[coords: Vec<[BigNumberish, BigNumberish]>], Vec<TileOutput>>;
+    buy_item: InvokeFunction<[item: BigNumberish, amount: BigNumberish], void>;
+    check_islands: InvokeFunction<[coords: Vec<[BigNumberish, BigNumberish]>], Vec<boolean>>;
+    disembark: InvokeFunction<[], void>;
+    embark: InvokeFunction<[order: OrderInput], void>;
+    island_prices: InvokeFunction<[x: BigNumberish, y: BigNumberish], Option<[number, number, number, number]>>;
+    sell_item: InvokeFunction<[item: BigNumberish, amount: BigNumberish], void>;
+    spawn: InvokeFunction<[x: BigNumberish, y: BigNumberish], void>;
   };
 
   constructor(

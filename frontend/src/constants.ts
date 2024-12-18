@@ -6,4 +6,4 @@ export const FUEL_PROVIDER_URL = "https://testnet.fuel.network/v1/graphql";
 
 // export const TESTNET_FAUCET_URL = "https://faucet-testnet.fuel.network/";
 
-export const CONTRACT_ID = "0x175ae449c60ea71b7158396a64489f7118302a66b1625f7e6c2f1c2486c66f20";
+export const CONTRACT_ID = "0xa16bb30433ec2606a6299dad2013dad6cad7f89771aa1119c6eb23b1ab74965b";

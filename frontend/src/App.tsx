@@ -10,7 +10,6 @@ import {
 import "./App.css";
 import { Prytain } from "./sway-api/index.ts";
 import Map, { MapMode } from "./components/Map.tsx";
-import TileMap from "./components/TileMap.tsx";
 
 function App() {
   const { isConnected } = useIsConnected();
@@ -27,28 +26,11 @@ function App() {
   const { connect, isConnecting } = useConnectUI();
   const { disconnect } = useDisconnect();
 
-  const [mode, setMode] = useState(MapMode.Move);
-
   return (
     <Box>
       { isConnected && wallet ? (
         <Box>
-          <p>{wallet.address.toB256()}</p>
-          <Button onPress={() => { disconnect(); }}>
-            Disconnect
-          </Button>
-          <Button isDisabled={mode == MapMode.Selection} onPress={() => { setMode(MapMode.Selection); }}>
-            Select
-          </Button>
-          <Button isDisabled={mode == MapMode.Move} onPress={() => { setMode(MapMode.Move); }}>
-            Move
-          </Button>
-{//          <Map mode={mode} contract={contract}/>
-}
-  <TileMap colors={(x, y) => {
-      return ['gray','violet','darkblue','orange','yellow','pink'][Math.abs(x+y)%6];
-    }}/>
-
+          <Map contract={contract}/>
         </Box>
       ) : (
         <Box>

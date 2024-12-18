@@ -4,7 +4,7 @@ source = "path+from-root-2AB5BCE55EAAEFF4"
 
 [[package]]
 name = "fixed_point"
-source = "git+https://github.com/IGI-111/fixed_point.git?default-branch#1d21268b9c6bf4819da2bf17f21b82e832e551c0"
+source = "git+https://github.com/IGI-111/fixed_point.git?default-branch#a21c7f9025a29e89b73fdb23f9becb186b0caf67"
 dependencies = ["std"]
 
 [[package]]

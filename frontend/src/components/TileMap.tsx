@@ -62,7 +62,7 @@ const CoordinateTooltip = ({ position, selectionStart, isSelecting }) => {
     <Text
       position={[gridX + 0.5, gridY + 1.5, 1]}
       fontSize={0.5}
-      color="red"
+      color="white"
       backgroundColor="#000000"
       padding={0.2}
       anchorX="center"
@@ -71,6 +71,48 @@ const CoordinateTooltip = ({ position, selectionStart, isSelecting }) => {
     >
       {debugText}
     </Text>
+  );
+};
+
+const Ship = ({ position }) => {
+  const [x, y] = position;
+  
+  return (
+    <group position={[x + 0.5, y + 0.5, 0.1]}>
+      {/* Simple triangle shape for the ship */}
+      <mesh>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={3}
+            array={new Float32Array([
+              -0.3, -0.3, 0,
+              0.3, -0.3, 0,
+              0, 0.3, 0,
+            ])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <meshBasicMaterial color="white" />
+      </mesh>
+      {/* Ship outline */}
+      <lineSegments>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={4}
+            array={new Float32Array([
+              -0.3, -0.3, 0,
+              0.3, -0.3, 0,
+              0, 0.3, 0,
+              -0.3, -0.3, 0,
+            ])}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <lineBasicMaterial color="#000000" />
+      </lineSegments>
+    </group>
   );
 };
 
@@ -327,16 +369,14 @@ return (
     </>
   );};
 
-const TileMap = ({ colors, getColor }) => {
+const TileMap = ({ colors, getColor, onSelect, shipPosition }) => {
   const [mode, setMode] = useState('pan');
   const [selectedTiles, setSelectedTiles] = useState(new Set());
 
-  // If colors is an array, use it directly. If it's a function (noise), wrap it
   const colorFunction = useMemo(() => {
     if (typeof colors === 'function') {
       return colors;
     } else {
-      // If it's an array, cycle through it based on coordinates
       return (x, y) => colors[Math.abs((x + y) % colors.length)];
     }
   }, [colors]);
@@ -364,10 +404,11 @@ const TileMap = ({ colors, getColor }) => {
             colors={colorFunction}
             selectedTiles={selectedTiles}
           />
+          {shipPosition && <Ship position={shipPosition} />}
           <Controls 
             mode={mode} 
             setMode={setMode}
-            onSelect={setSelectedTiles}
+            onSelect={onSelect}
           />
         </Canvas>
       </div>
