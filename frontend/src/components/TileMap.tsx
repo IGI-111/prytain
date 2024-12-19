@@ -365,7 +365,7 @@ const Controls = ({ mode, setMode, onSelect }) => {
       isDragging.current = true;
       previousPosition.current = [e.clientX, e.clientY];
       gl.domElement.style.cursor = 'grabbing';
-    } else if (mode === 'select') {
+    } else if (mode === 'explore') {
       // Store the exact world position for the selection start
       selectionStart.current = worldPos;
       setCurrentPos(worldPos);
@@ -373,7 +373,7 @@ const Controls = ({ mode, setMode, onSelect }) => {
     }
   };  
   const handlePointerUp = (e) => {
-    if (mode === 'select' && selectionStart.current && currentPos) {
+    if (mode === 'explore' && selectionStart.current && currentPos) {
       const selectedIndices = getTilesInSelection(selectionStart.current, currentPos);
       onSelect(selectedIndices);
     }
@@ -396,7 +396,7 @@ const Controls = ({ mode, setMode, onSelect }) => {
       camera.position.y += deltaY;
       
       previousPosition.current = [e.clientX, e.clientY];
-    } else if (mode === 'select' && selectionStart.current) {
+    } else if (mode === 'explore' && selectionStart.current) {
       // Update current position for selection rectangle
       setCurrentPos(worldPos);
     }
@@ -418,7 +418,7 @@ return (
       <CoordinateTooltip 
         position={hoverPosition}
         selectionStart={selectionStart.current}
-        isSelecting={mode === 'select' && selectionStart.current !== null}
+        isSelecting={mode === 'explore' && selectionStart.current !== null}
       />
     </>
   );};
@@ -480,17 +480,17 @@ const TileMap = ({ getTileType, onSelect, shipPosition }) => {
           Pan Mode
         </button>
         <button
-          onClick={() => setMode('select')}
+          onClick={() => setMode('explore')}
           style={{
             padding: '8px 16px',
-            backgroundColor: mode === 'select' ? '#4444ff' : '#ffffff',
-            color: mode === 'select' ? '#ffffff' : '#000000',
+            backgroundColor: mode === 'explore' ? '#4444ff' : '#ffffff',
+            color: mode === 'explore' ? '#ffffff' : '#000000',
             border: '1px solid #4444ff',
             borderRadius: '4px',
             cursor: 'pointer'
           }}
         >
-          Select Mode
+          Explore Mode
         </button>
       </div>
     </>

@@ -89,11 +89,16 @@ storage {
     prices: StorageMap<b256, [u8;4]> = StorageMap {},
 }
 
-fn island_exists_at(x: u32, y: u32) -> bool {
+
+fn altitude_at(x: u32, y:u32) -> u8 {
     const SEED: u32 = 0;
-    const SCALE: u32 = 9;
-    const OCTAVES: u32 = 5;
-    compute_perlin(x, y, SEED, SCALE, OCTAVES) > 160
+    const SCALE: u32 = 2;
+    const OCTAVES: u32 = 3;
+    compute_perlin(x, y, SEED, SCALE, OCTAVES)
+}
+
+fn island_exists_at(x: u32, y: u32) -> bool {
+    altitude_at(x,y) > 150
 }
 
 fn island_id(x: u32, y:u32) -> b256 {
@@ -150,6 +155,8 @@ abi MyContract {
     fn buy_item(item: u8, amount: u8);
     #[storage(read, write)]
     fn sell_item(item: u8, amount: u8);
+    #[storage(read)]
+    fn player_position() -> Option<(u32, u32)>;
 }
 
 impl MyContract for Contract {
@@ -254,6 +261,18 @@ impl MyContract for Contract {
 
         storage.players.get(player_address).write(player);
         storage.prices.get(island_id(position.0, position.1)).write(prices);
+    }
+    #[storage(read)]
+    fn player_position() -> Option<(u32, u32)> {
+        let player_address = msg_sender().unwrap().as_address().unwrap();
+        let player = storage.players.get(player_address).try_read();
+        match player {
+            None => None, 
+            Some(player) => Some(match player.state {
+                PlayerState::Landed(position) => position,
+                PlayerState::Embarked(ship) => ship.current_position(),
+            }),
+        }
     }
 }
 

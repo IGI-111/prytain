@@ -317,6 +317,29 @@ const abi = {
       ]
     },
     {
+      "inputs": [],
+      "name": "player_position",
+      "output": {
+        "name": "",
+        "type": 4,
+        "typeArguments": [
+          {
+            "name": "",
+            "type": 1,
+            "typeArguments": null
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
       "inputs": [
         {
           "name": "item",
@@ -402,6 +425,7 @@ export class PrytainInterface extends Interface {
     disembark: FunctionFragment;
     embark: FunctionFragment;
     island_prices: FunctionFragment;
+    player_position: FunctionFragment;
     sell_item: FunctionFragment;
     spawn: FunctionFragment;
   };
@@ -418,6 +442,7 @@ export class Prytain extends Contract {
     disembark: InvokeFunction<[], void>;
     embark: InvokeFunction<[order: OrderInput], void>;
     island_prices: InvokeFunction<[x: BigNumberish, y: BigNumberish], Option<[number, number, number, number]>>;
+    player_position: InvokeFunction<[], Option<[number, number]>>;
     sell_item: InvokeFunction<[item: BigNumberish, amount: BigNumberish], void>;
     spawn: InvokeFunction<[x: BigNumberish, y: BigNumberish], void>;
   };

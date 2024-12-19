@@ -15,11 +15,6 @@ import {
 import * as THREE from "three";
 import TileMap from "./TileMap";
 
-export enum MapMode {
-  Move,
-  Selection,
-}
-
 function Map({ contract, mode }) {
   const [origin, setOrigin] = useState({
     x: Math.floor(Math.pow(2, 32) / 2),
@@ -27,8 +22,6 @@ function Map({ contract, mode }) {
   });
   const [tiles, setTiles] = useState({});
   const [fetchQueue, setFetchQueue] = useState(new Set());
-  const [mapMode, setMapMode] = useState(MapMode.Move);
-  const [movingMap, setMovingMap] = useState(null);
 
   const fetchTilesBatched = async (coords) => {
     setFetchQueue((fetchQueue) => {
@@ -100,16 +93,19 @@ function Map({ contract, mode }) {
     console.log(coords);
   };
 
-  const getTileType = (x, y) => {
-    const tile = tiles[`${x+origin.x},${y+origin.y}`];
-    if(tile === undefined) {
+  const getTileType = useCallback((x, y) => {
+    const key = `${x+origin.x},${y+origin.y}`;
+    const tile = tiles[key];
+    if(fetchQueue.has(key)) {
+      return 3;
+    } else if(tile === undefined) {
       return 1;
     } else if(tile) {
       return 0;
     } else {
       return 2;
     }
-  };
+  }, [tiles, fetchQueue]);
 
 
   return (
