@@ -16,6 +16,17 @@ import * as THREE from "three";
 import TileMap from "./TileMap";
 import {  useDisconnect } from "@fuels/react";
 
+function splitmix32(a) {
+ return function() {
+   a |= 0;
+   a = a + 0x9e3779b9 | 0;
+   let t = a ^ a >>> 16;
+   t = Math.imul(t, 0x21f0aaad);
+   t = t ^ t >>> 15;
+   t = Math.imul(t, 0x735a2d97);
+   return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
+  }
+}
 
 function Map({ contract, tiles, setTiles, shipPosition, origin }) {
   const [fetchQueue, setFetchQueue] = useState(new Set());
@@ -108,7 +119,7 @@ function Map({ contract, tiles, setTiles, shipPosition, origin }) {
     } else if(tile === undefined) {
       return 1;
     } else if(tile) {
-      return 0;
+      return 4+((x^y)%32);
     } else {
       return 2;
     }
