@@ -41,12 +41,12 @@ const abi = {
       "components": [
         {
           "name": "__tuple_element",
-          "type": 11,
+          "type": 12,
           "typeArguments": null
         },
         {
           "name": "__tuple_element",
-          "type": 11,
+          "type": 12,
           "typeArguments": null
         }
       ],
@@ -58,7 +58,7 @@ const abi = {
       "components": [
         {
           "name": "__array_element",
-          "type": 13,
+          "type": 14,
           "typeArguments": null
         }
       ],
@@ -66,12 +66,24 @@ const abi = {
     },
     {
       "typeId": 3,
+      "type": "[_; 4]",
+      "components": [
+        {
+          "name": "__array_element",
+          "type": 13,
+          "typeArguments": null
+        }
+      ],
+      "typeParameters": null
+    },
+    {
+      "typeId": 4,
       "type": "bool",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 4,
+      "typeId": 5,
       "type": "enum Option",
       "components": [
         {
@@ -81,16 +93,16 @@ const abi = {
         },
         {
           "name": "Some",
-          "type": 6,
+          "type": 7,
           "typeArguments": null
         }
       ],
       "typeParameters": [
-        6
+        7
       ]
     },
     {
-      "typeId": 5,
+      "typeId": 6,
       "type": "enum Order",
       "components": [
         {
@@ -102,81 +114,81 @@ const abi = {
       "typeParameters": null
     },
     {
-      "typeId": 6,
+      "typeId": 7,
       "type": "generic T",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 7,
+      "typeId": 8,
       "type": "raw untyped ptr",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 8,
+      "typeId": 9,
       "type": "str",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 9,
+      "typeId": 10,
       "type": "struct RawVec",
       "components": [
         {
           "name": "ptr",
-          "type": 7,
+          "type": 8,
           "typeArguments": null
         },
         {
           "name": "cap",
-          "type": 12,
+          "type": 13,
           "typeArguments": null
         }
       ],
       "typeParameters": [
-        6
+        7
       ]
     },
     {
-      "typeId": 10,
+      "typeId": 11,
       "type": "struct std::vec::Vec",
       "components": [
         {
           "name": "buf",
-          "type": 9,
+          "type": 10,
           "typeArguments": [
             {
               "name": "",
-              "type": 6,
+              "type": 7,
               "typeArguments": null
             }
           ]
         },
         {
           "name": "len",
-          "type": 12,
+          "type": 13,
           "typeArguments": null
         }
       ],
       "typeParameters": [
-        6
+        7
       ]
     },
     {
-      "typeId": 11,
+      "typeId": 12,
       "type": "u32",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 12,
+      "typeId": 13,
       "type": "u64",
       "components": null,
       "typeParameters": null
     },
     {
-      "typeId": 13,
+      "typeId": 14,
       "type": "u8",
       "components": null,
       "typeParameters": null
@@ -187,12 +199,12 @@ const abi = {
       "inputs": [
         {
           "name": "item",
-          "type": 13,
+          "type": 14,
           "typeArguments": null
         },
         {
           "name": "amount",
-          "type": 13,
+          "type": 14,
           "typeArguments": null
         }
       ],
@@ -216,7 +228,7 @@ const abi = {
       "inputs": [
         {
           "name": "coords",
-          "type": 10,
+          "type": 11,
           "typeArguments": [
             {
               "name": "",
@@ -229,11 +241,11 @@ const abi = {
       "name": "check_islands",
       "output": {
         "name": "",
-        "type": 10,
+        "type": 11,
         "typeArguments": [
           {
             "name": "",
-            "type": 3,
+            "type": 4,
             "typeArguments": null
           }
         ]
@@ -241,64 +253,22 @@ const abi = {
       "attributes": null
     },
     {
-      "inputs": [],
-      "name": "disembark",
-      "output": {
-        "name": "",
-        "type": 0,
-        "typeArguments": null
-      },
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
-      "inputs": [
-        {
-          "name": "order",
-          "type": 5,
-          "typeArguments": null
-        }
-      ],
-      "name": "embark",
-      "output": {
-        "name": "",
-        "type": 0,
-        "typeArguments": null
-      },
-      "attributes": [
-        {
-          "name": "storage",
-          "arguments": [
-            "read",
-            "write"
-          ]
-        }
-      ]
-    },
-    {
       "inputs": [
         {
           "name": "x",
-          "type": 11,
+          "type": 12,
           "typeArguments": null
         },
         {
           "name": "y",
-          "type": 11,
+          "type": 12,
           "typeArguments": null
         }
       ],
       "name": "island_prices",
       "output": {
         "name": "",
-        "type": 4,
+        "type": 5,
         "typeArguments": [
           {
             "name": "",
@@ -317,11 +287,81 @@ const abi = {
       ]
     },
     {
+      "inputs": [
+        {
+          "name": "order",
+          "type": 6,
+          "typeArguments": null
+        }
+      ],
+      "name": "order",
+      "output": {
+        "name": "",
+        "type": 0,
+        "typeArguments": null
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read",
+            "write"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [],
+      "name": "player_gold",
+      "output": {
+        "name": "",
+        "type": 5,
+        "typeArguments": [
+          {
+            "name": "",
+            "type": 13,
+            "typeArguments": null
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
+      "inputs": [],
+      "name": "player_inventory",
+      "output": {
+        "name": "",
+        "type": 5,
+        "typeArguments": [
+          {
+            "name": "",
+            "type": 3,
+            "typeArguments": null
+          }
+        ]
+      },
+      "attributes": [
+        {
+          "name": "storage",
+          "arguments": [
+            "read"
+          ]
+        }
+      ]
+    },
+    {
       "inputs": [],
       "name": "player_position",
       "output": {
         "name": "",
-        "type": 4,
+        "type": 5,
         "typeArguments": [
           {
             "name": "",
@@ -343,12 +383,12 @@ const abi = {
       "inputs": [
         {
           "name": "item",
-          "type": 13,
+          "type": 14,
           "typeArguments": null
         },
         {
           "name": "amount",
-          "type": 13,
+          "type": 14,
           "typeArguments": null
         }
       ],
@@ -369,18 +409,7 @@ const abi = {
       ]
     },
     {
-      "inputs": [
-        {
-          "name": "x",
-          "type": 11,
-          "typeArguments": null
-        },
-        {
-          "name": "y",
-          "type": 11,
-          "typeArguments": null
-        }
-      ],
+      "inputs": [],
       "name": "spawn",
       "output": {
         "name": "",
@@ -403,7 +432,7 @@ const abi = {
       "logId": "10098701174489624218",
       "loggedType": {
         "name": "",
-        "type": 8,
+        "type": 9,
         "typeArguments": null
       }
     }
@@ -422,9 +451,10 @@ export class PrytainInterface extends Interface {
   declare functions: {
     buy_item: FunctionFragment;
     check_islands: FunctionFragment;
-    disembark: FunctionFragment;
-    embark: FunctionFragment;
     island_prices: FunctionFragment;
+    order: FunctionFragment;
+    player_gold: FunctionFragment;
+    player_inventory: FunctionFragment;
     player_position: FunctionFragment;
     sell_item: FunctionFragment;
     spawn: FunctionFragment;
@@ -439,12 +469,13 @@ export class Prytain extends Contract {
   declare functions: {
     buy_item: InvokeFunction<[item: BigNumberish, amount: BigNumberish], void>;
     check_islands: InvokeFunction<[coords: Vec<[BigNumberish, BigNumberish]>], Vec<boolean>>;
-    disembark: InvokeFunction<[], void>;
-    embark: InvokeFunction<[order: OrderInput], void>;
     island_prices: InvokeFunction<[x: BigNumberish, y: BigNumberish], Option<[number, number, number, number]>>;
+    order: InvokeFunction<[order: OrderInput], void>;
+    player_gold: InvokeFunction<[], Option<BN>>;
+    player_inventory: InvokeFunction<[], Option<[BN, BN, BN, BN]>>;
     player_position: InvokeFunction<[], Option<[number, number]>>;
     sell_item: InvokeFunction<[item: BigNumberish, amount: BigNumberish], void>;
-    spawn: InvokeFunction<[x: BigNumberish, y: BigNumberish], void>;
+    spawn: InvokeFunction<[], void>;
   };
 
   constructor(

@@ -289,7 +289,7 @@ const ChunkManager = ({ colors, selectedTiles, getTileType }) => {
   );
 };
 
-const Controls = ({ mode, setMode, onSelect }) => {
+const Controls = ({ mode, setMode, onSelect, onMove }) => {
   const { camera, gl, invalidate } = useThree();
   const isDragging = useRef(false);
   const previousPosition = useRef([0, 0]);
@@ -370,6 +370,9 @@ const Controls = ({ mode, setMode, onSelect }) => {
       selectionStart.current = worldPos;
       setCurrentPos(worldPos);
       gl.domElement.style.cursor = 'crosshair';
+    } else if (mode === 'move') {
+      gl.domElement.style.cursor = 'crosshair';
+      onMove([Math.floor(worldPos[0]), Math.floor(worldPos[1])])
     }
   };  
   const handlePointerUp = (e) => {
@@ -423,7 +426,7 @@ return (
     </>
   );};
 
-const TileMap = ({ getTileType, onSelect, shipPosition }) => {
+const TileMap = ({ getTileType, onSelect, onMove, shipPosition }) => {
   const [mode, setMode] = useState('pan');
   const [selectedTiles, setSelectedTiles] = useState(new Set());
 
@@ -455,6 +458,7 @@ const TileMap = ({ getTileType, onSelect, shipPosition }) => {
             mode={mode} 
             setMode={setMode}
             onSelect={onSelect}
+            onMove={onMove}
           />
         </Canvas>
       </div>
@@ -477,7 +481,7 @@ const TileMap = ({ getTileType, onSelect, shipPosition }) => {
             cursor: 'pointer'
           }}
         >
-          Pan Mode
+          Pan
         </button>
         <button
           onClick={() => setMode('explore')}
@@ -490,7 +494,20 @@ const TileMap = ({ getTileType, onSelect, shipPosition }) => {
             cursor: 'pointer'
           }}
         >
-          Explore Mode
+          Explore
+        </button>
+        <button
+          onClick={() => setMode('move')}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: mode === 'move' ? '#4444ff' : '#ffffff',
+            color: mode === 'move' ? '#ffffff' : '#000000',
+            border: '1px solid #4444ff',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Move
         </button>
       </div>
     </>

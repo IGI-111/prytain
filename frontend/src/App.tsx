@@ -1,6 +1,6 @@
 import { cssObj } from "@fuel-ui/css";
 import { Button, Box, BoxCentered, Heading } from "@fuel-ui/react";
-import { useIsConnected, useWallet } from "@fuels/react";
+import { useIsConnected, useWallet, useProvider } from "@fuels/react";
 import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 import { useConnectUI, useDisconnect } from "@fuels/react";
 
@@ -9,7 +9,7 @@ import {
 } from "./constants.ts";
 import "./App.css";
 import { Prytain } from "./sway-api/index.ts";
-import Map, { MapMode } from "./components/Map.tsx";
+import Game from "./components/Game.tsx";
 
 function App() {
   const { isConnected } = useIsConnected();
@@ -29,9 +29,7 @@ function App() {
   return (
     <Box>
       { isConnected && wallet ? (
-        <Box>
-          <Map contract={contract}/>
-        </Box>
+        <Game contract={contract}/>
       ) : (
         <Box>
           <p>Connect with the Fuel Wallet</p>
