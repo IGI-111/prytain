@@ -16,18 +16,6 @@ import * as THREE from "three";
 import TileMap from "./TileMap";
 import {  useDisconnect } from "@fuels/react";
 
-function splitmix32(a) {
- return function() {
-   a |= 0;
-   a = a + 0x9e3779b9 | 0;
-   let t = a ^ a >>> 16;
-   t = Math.imul(t, 0x21f0aaad);
-   t = t ^ t >>> 15;
-   t = Math.imul(t, 0x735a2d97);
-   return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
-  }
-}
-
 function Map({ contract, tiles, setTiles, shipPosition, origin }) {
   const [fetchQueue, setFetchQueue] = useState(new Set());
 
@@ -119,9 +107,18 @@ function Map({ contract, tiles, setTiles, shipPosition, origin }) {
     } else if(tile === undefined) {
       return 1;
     } else if(tile) {
-      return 4+((x^y)%32);
+      return 4+(Math.abs(x^y)%32);
     } else {
-      return 2;
+      let noise = new WorleyNoise()
+      let alt = noise.fbm(x, y) * 255;
+      if(alt < 70){
+      return 38;
+      }
+      if(alt < 100) {
+        return 37;
+      }
+      return 36;
+      // return 2;
     }
   }, [tiles, fetchQueue]);
 
@@ -192,3 +189,105 @@ function Map({ contract, tiles, setTiles, shipPosition, origin }) {
 }
 
 export default Map;
+
+
+function splitmix32(a) {
+ return function() {
+   a |= 0;
+   a = a + 0x9e3779b9 | 0;
+   let t = a ^ a >>> 16;
+   t = Math.imul(t, 0x21f0aaad);
+   t = t ^ t >>> 15;
+   t = Math.imul(t, 0x735a2d97);
+   return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
+  }
+}
+
+
+class WorleyNoise {
+    constructor(seed = 12345) {
+        this.seed = seed;
+    }
+
+    // Fast random number generator based on position and seed
+    random2D(x, y) {
+        let h = this.seed + x * 374761393 + y * 668265263;
+        h = (h ^ (h >> 13)) * 1274126177;
+        h = h ^ (h >> 16);
+     
+        // Generate two random numbers from one hash
+        const h1 = h & 0xFFFF;
+        const h2 = (h >> 16) & 0xFFFF;
+      
+        return {
+            // Convert to -1 to 1 range
+            x: (h1 / 0xFFFF) * 2 - 1,
+            y: (h2 / 0xFFFF) * 2 - 1
+        };
+    }
+
+    // Calculate distance between two points using squared distance
+    // (avoiding square root when possible makes it faster)
+    distance(x1, y1, x2, y2) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        return dx * dx + dy * dy;
+    }
+
+    // Generate single octave of Worley noise
+    noise(x, y, scale) {
+        const cellSize = scale;
+        
+        // Determine grid cell coordinates
+        const cellX = Math.floor(x / cellSize);
+        const cellY = Math.floor(y / cellSize);
+        
+        let minDist = Infinity;
+        
+        // Check surrounding cells
+        for (let xOffset = -1; xOffset <= 1; xOffset++) {
+            for (let yOffset = -1; yOffset <= 1; yOffset++) {
+                const currentCellX = cellX + xOffset;
+                const currentCellY = cellY + yOffset;
+                
+                // Generate feature point for current cell
+                const random = this.random2D(currentCellX, currentCellY);
+                const featureX = currentCellX * cellSize + (random.x + 1) * 0.5 * cellSize;
+                const featureY = currentCellY * cellSize + (random.y + 1) * 0.5 * cellSize;
+                
+                // Calculate squared distance to feature point
+                const dist = this.distance(x, y, featureX, featureY);
+                minDist = Math.min(minDist, dist);
+            }
+        }
+        
+        // Take square root only at the end for final normalization
+        return Math.sqrt(minDist) / cellSize;
+    }
+
+    // Generate FBM (Fractional Brownian Motion) version
+    fbm(x, y, options = {}) {
+        const {
+            octaves = 4,
+            scale = 50,
+            persistence = 0.5,
+            lacunarity = 2
+        } = options;
+
+        let total = 0;
+        let frequency = 1;
+        let amplitude = 1;
+        let maxValue = 0;
+
+        // Accumulate octaves
+        for (let i = 0; i < octaves; i++) {
+            total += this.noise(x * frequency, y * frequency, scale / frequency) * amplitude;
+            maxValue += amplitude;
+            amplitude *= persistence;
+            frequency *= lacunarity;
+        }
+
+       // Normalize the result
+        return total / maxValue;
+    }
+}
